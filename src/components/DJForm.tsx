@@ -1,101 +1,98 @@
-import React, { useState } from 'react';
-import { Person } from '../models/Person'; // Import the Person interface
-import GenericForm from './ui/GenericForm';
+import React, { useState, useEffect } from 'react';
+    import { Person } from '../models/Person';
+    import FormInput from './ui/FormInput';
 
-interface Props {
-  dj?: Person | null;
-  onClose: () => void;
-  onSave: (dj: Person) => void;
-}
-
-const DJForm: React.FC<Props> = ({ dj, onClose, onSave }) => {
-  const [fullName, setFullName] = useState(dj?.fullName || '');
-  const [contact, setContact] = useState(dj?.contact || '');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: { [key: string]: string } = {};
-
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Name is required';
-      isValid = false;
-    }
-    if (!contact.trim()) {
-      newErrors.contact = 'Contact is required';
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-      newErrors.contact = 'Invalid email format';
-      isValid = false;
+    interface DJFormProps {
+      dj?: Person | null;
+      onClose: () => void;
+      onSave: (dj: Person) => void;
     }
 
-    setErrors(newErrors);
-    return isValid;
-  };
+    const DJForm: React.FC<DJFormProps> = ({ dj, onClose, onSave }) => {
+      const [formData, setFormData] = useState<Person>({
+        id: dj?.id || 0,
+        fullName: dj?.fullName || '',
+        contact: dj?.contact || '',
+      });
+      const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const newDJ: Person = {
-        id: dj?.id || Date.now(),
-        fullName,
-        contact,
-        roleIds: [1], // Assuming roleId 1 is DJ
+      useEffect(() => {
+        if (dj) {
+          setFormData(dj);
+        }
+      }, [dj]);
+
+      const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [name]: value,
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
-      onSave(newDJ);
-      onClose();
-      setFullName('');
-      setContact('');
-      setErrors({});
-    }
-  };
 
-  const handleCancel = () => {
-    onClose();
-    setFullName('');
-    setContact('');
-    setErrors({});
-  };
+      const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (validateForm()) {
+          onSave(formData);
+        }
+      };
 
-  const formFields = [
-    {
-      name: 'fullName',
-      label: 'Name',
-      type: 'text',
-      value: fullName,
-      onChange: setFullName,
-      required: true,
-      error: errors.fullName,
-    },
-    {
-      name: 'contact',
-      label: 'Contact',
-      type: 'text',
-      value: contact,
-      onChange: setContact,
-      required: true,
-      error: errors.contact,
-    },
-  ];
+      const validateForm = () => {
+        let isValid = true;
+        const newErrors: { [key: string]: string } = {};
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" onClick={onClose}>
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
-          {dj ? 'Edit DJ' : 'Add DJ'}
-        </h3>
-        <div className="mt-2">
-          <GenericForm
-            fields={formFields}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            submitButtonText="Save"
-            cancelButtonText="Cancel"
-          />
+        if (!formData.fullName) {
+          newErrors.fullName = 'Full name is required';
+          isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
+            <h2 className="text-2xl font-bold mb-4">{dj ? 'Edit DJ' : 'Add DJ'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormInput
+                label="Full Name"
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                error={errors.fullName}
+              />
+              <FormInput
+                label="Contact"
+                type="text"
+                id="contact"
+                name="contact"
+                value={formData.contact}
+                onChange={handleChange}
+                error={errors.contact}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-};
+      );
+    };
 
-export default DJForm;
+    export default DJForm;

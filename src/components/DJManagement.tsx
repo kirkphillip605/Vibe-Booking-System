@@ -1,18 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
-    import { Person } from '../models/Person'; // Import the Person interface
-    import DJForm from './DJForm'; // Import the DJForm component
+    import { Person } from '../models/Person';
+    import DJForm from './DJForm';
+    import { useDebounce } from '../utils/hooks';
+    import { useClientContext } from './ClientContext';
 
-    const DJManagement = () => {
-      const [djs, setDJs] = useState<Person[]>([
-        { id: 1, fullName: 'DJ John Doe', contact: 'john.doe@example.com', roleIds: [1] },
-        { id: 2, fullName: 'DJ Jane Smith', contact: 'jane.smith@example.com', roleIds: [1] },
-      ]);
+    interface DJManagementProps {
+      // No props needed, as the component manages its own state for now.
+    }
+
+    interface DJRowProps {
+      dj: Person;
+      onEdit: (dj: Person) => void;
+      onDelete: (id: number) => void;
+    }
+
+    const DJRow: React.FC<DJRowProps> = ({ dj, onEdit, onDelete }) => {
+      return (
+        <tr key={dj.id}>
+          <td>{dj?.fullName}</td>
+          <td>{dj?.contact}</td>
+          <td>
+            <button
+              className="text-blue-500 hover:text-blue-700 mr-2"
+              onClick={() => onEdit(dj)}
+            >
+              <Pencil className="inline-block" size={16} />
+            </button>
+            <button
+              className="text-red-500 hover:text-red-700"
+              onClick={() => onDelete(dj.id)}
+            >
+              <Trash className="inline-block" size={16} />
+            </button>
+          </td>
+        </tr>
+      );
+    };
+
+    const DJManagement: React.FC<DJManagementProps> = () => {
+      const { people, onPeopleChange, onAddDJ, onEditDJ, onDeleteDJ } = useClientContext();
+      const [djs, setDJs] = useState<Person[]>([]);
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingDJ, setEditingDJ] = useState<Person | null>(null);
+      const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-      const handleAddDJ = () => {
+      useEffect(() => {
+        setDJs(people || []);
+      }, [people]);
+
+      const filteredDJs = (people ? djs.filter(dj =>
+        Object.values(dj).some(value =>
+          String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        )
+      ) : []);
+
+      const handleAddDJClick = () => {
         setEditingDJ(null);
         setIsModalOpen(true);
       };
@@ -22,25 +66,19 @@ import React, { useState } from 'react';
         setIsModalOpen(true);
       };
 
-      const handleDeleteDJ = (id: number) => {
-        setDJs(djs.filter(dj => dj.id !== id));
+      const handleDeleteDJ = (djId: number) => {
+        onDeleteDJ(djId);
       };
 
       const handleSaveDJ = (dj: Person) => {
         if (editingDJ) {
-          setDJs(djs.map(d => (d.id === dj.id ? dj : d)));
+          onEditDJ(dj);
         } else {
-          setDJs([...djs, { ...dj, id: Date.now(), roleIds: [1] }]); // Assuming roleId 1 is DJ
+          onAddDJ(dj);
         }
         setIsModalOpen(false);
         setEditingDJ(null);
       };
-
-      const filteredDJs = djs.filter(dj =>
-        Object.values(dj).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
 
       return (
         <div className="container mx-auto p-4">
@@ -49,7 +87,7 @@ import React, { useState } from 'react';
             <h2 className="text-lg font-semibold">DJs</h2>
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
-              onClick={handleAddDJ}
+              onClick={handleAddDJClick}
             >
               <Plus className="mr-2" size={16} /> Add DJ
             </button>
@@ -79,24 +117,12 @@ import React, { useState } from 'react';
               </thead>
               <tbody>
                 {filteredDJs.map(dj => (
-                  <tr key={dj.id}>
-                    <td>{dj.fullName}</td>
-                    <td>{dj.contact}</td>
-                    <td>
-                      <button
-                        className="text-blue-500 hover:text-blue-700 mr-2"
-                        onClick={() => handleEditDJ(dj)}
-                      >
-                        <Pencil className="inline-block" size={16} />
-                      </button>
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteDJ(dj.id)}
-                      >
-                        <Trash className="inline-block" size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                  <DJRow
+                    key={dj.id}
+                    dj={dj}
+                    onEdit={handleEditDJ}
+                    onDelete={handleDeleteDJ}
+                  />
                 ))}
               </tbody>
             </table>

@@ -1,38 +1,65 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
     import ClientForm from './ClientForm';
-    import { Client, ClientType, Contact, Booking, Person, ClientSegmentation } from '../models'; // Import Client and ClientType
+    import { Client, ClientType, Contact, Booking, Person, ClientSegmentation } from '../models';
+    import { useClientContext } from './ClientContext';
     import { ContactForm } from './ContactForm';
 
-    interface ClientManagementProps {
-      clients: Client[];
+    interface ClientRowProps {
+      client: Client;
       clientTypes: ClientType[];
-      contacts: Contact[];
-      bookings: Booking[];
-      people: Person[];
-      clientSegmentations: ClientSegmentation[];
-      onClientsChange: (clients: Client[]) => void;
-      onClientTypesChange: (clientTypes: ClientType[]) => void;
-      onContactsChange: (contacts: Contact[]) => void;
-      onBookingsChange: (bookings: Booking[]) => void;
-      onPeopleChange: (people: Person[]) => void;
-      onClientSegmentationsChange: (clientSegmentations: ClientSegmentation[]) => void;
+      onEdit: (client: Client) => void;
+      onDelete: (id: number) => void;
+      onAddContact: (client: Client) => void;
     }
 
-    const ClientManagement: React.FC<ClientManagementProps> = ({
-      clients = [],
-      clientTypes = [],
-      contacts = [],
-      bookings = [],
-      people = [],
-      clientSegmentations = [],
-      onClientsChange,
-      onClientTypesChange,
-      onContactsChange,
-      onBookingsChange,
-      onPeopleChange,
-      onClientSegmentationsChange,
-    }) => {
+    const ClientRow: React.FC<ClientRowProps> = ({ client, clientTypes, onEdit, onDelete, onAddContact }) => {
+      const clientTypeName = clientTypes?.find(type => type.id === client?.clientTypeId)?.name || 'Unknown';
+
+      return (
+        <tr key={client.id}>
+          <td>{client?.businessName || `${client?.primaryContact?.firstName} ${client?.primaryContact?.lastName}`}</td>
+          <td>
+            {client?.primaryContact && `${client.primaryContact.firstName} ${client.primaryContact.lastName}`}
+            <button
+              className="text-blue-500 hover:text-blue-700 ml-2"
+              onClick={() => onAddContact(client)}
+            >
+              <Plus className="inline-block" size={16} />
+            </button>
+          </td>
+          <td>{clientTypeName}</td>
+          <td>
+            <button
+              className="text-blue-500 hover:text-blue-700 mr-2"
+              onClick={() => onEdit(client)}
+            >
+              <Pencil className="inline-block" size={16} />
+            </button>
+            <button
+              className="text-red-500 hover:text-red-700"
+              onClick={() => onDelete(client.id)}
+            >
+              <Trash className="inline-block" size={16} />
+            </button>
+          </td>
+        </tr>
+      );
+    };
+
+    const ClientManagement: React.FC = () => {
+      const {
+        clients,
+        clientTypes,
+        contacts,
+        bookings,
+        people,
+        clientSegmentations,
+        onClientsChange,
+        onAddClient,
+        onEditClient,
+        onDeleteClient,
+      } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -52,7 +79,7 @@ import React, { useState, useEffect } from 'react';
         );
       }, [clients, searchTerm]);
 
-      const handleAddClient = () => {
+      const handleAddClientClick = () => {
         setEditingClient(null);
         setIsModalOpen(true);
       };
@@ -62,15 +89,15 @@ import React, { useState, useEffect } from 'react';
         setIsModalOpen(true);
       };
 
-      const handleDeleteClient = (id: number) => {
-        onClientsChange(clients.filter(client => client.id !== id));
+      const handleDeleteClient = (clientId: number) => {
+        onDeleteClient(clientId);
       };
 
       const handleSaveClient = (client: Client) => {
         if (editingClient) {
-          onClientsChange(clients.map(c => (c.id === client.id ? client : c)));
+          onEditClient(client);
         } else {
-          onClientsChange([...clients, { ...client, id: Date.now() }]);
+          onAddClient(client);
         }
         setIsModalOpen(false);
         setEditingClient(null);
@@ -113,7 +140,7 @@ import React, { useState, useEffect } from 'react';
             <h2 className="text-lg font-semibold">Clients</h2>
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
-              onClick={handleAddClient}
+              onClick={handleAddClientClick}
             >
               <Plus className="mr-2" size={16} /> Add Client
             </button>
@@ -144,33 +171,14 @@ import React, { useState, useEffect } from 'react';
               </thead>
               <tbody>
                 {filteredClients.map(client => (
-                  <tr key={client.id}>
-                    <td>{client.businessName || `${client.primaryContact.firstName} ${client.primaryContact.lastName}`}</td>
-                    <td>
-                      {client.primaryContact && `${client.primaryContact.firstName} ${client.primaryContact.lastName}`}
-                      <button
-                        className="text-blue-500 hover:text-blue-700 ml-2"
-                        onClick={() => handleAddContact(client)}
-                      >
-                        <Plus className="inline-block" size={16} />
-                      </button>
-                    </td>
-                    <td>{client.clientType.name}</td>
-                    <td>
-                      <button
-                        className="text-blue-500 hover:text-blue-700 mr-2"
-                        onClick={() => handleEditClient(client)}
-                      >
-                        <Pencil className="inline-block" size={16} />
-                      </button>
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteClient(client.id)}
-                      >
-                        <Trash className="inline-block" size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                  <ClientRow
+                    key={client.id}
+                    client={client}
+                    clientTypes={clientTypes}
+                    onEdit={handleEditClient}
+                    onDelete={handleDeleteClient}
+                    onAddContact={handleAddContact}
+                  />
                 ))}
               </tbody>
             </table>

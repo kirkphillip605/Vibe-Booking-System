@@ -2,25 +2,21 @@ import React, { useState, useEffect } from 'react';
     import { Booking } from '../models/Booking';
     import { Person } from '../models/Person';
     import { Venue } from '../models/Venue';
+    import { useClientContext } from './ClientContext';
 
     interface Props {
-      bookings: Booking[];
-      venues: Venue[];
-      people: Person[];
+      // No props needed, as the component will use context
     }
 
-    const Scheduling: React.FC<Props> = ({
-      bookings = [],
-      venues = [],
-      people = [],
-    }) => {
+    const Scheduling: React.FC<Props> = () => {
+      const { bookings, venues, people } = useClientContext();
       const [events, setEvents] = useState<any[]>([]);
 
       useEffect(() => {
         if (bookings && venues && people) {
-          const formattedEvents = bookings.map(booking => {
-            const venue = venues.find(v => v.id === booking.venueId);
-            const djNames = people.filter(p => booking.djIds.includes(p.id)).map(dj => dj.fullName).join(', ');
+          const formattedEvents = bookings?.map(booking => {
+            const venue = venues?.find(v => v.id === booking.venueId);
+            const djNames = people?.filter(p => booking.djIds.includes(p.id))?.map(dj => dj.fullName).join(', ');
             return {
               id: booking.id,
               date: booking.startDate,
@@ -29,7 +25,7 @@ import React, { useState, useEffect } from 'react';
               dj: djNames,
               description: booking.description,
             };
-          });
+          }) || [];
           setEvents(formattedEvents);
         } else {
           setEvents([]); // Ensure events is an empty array if data is not available

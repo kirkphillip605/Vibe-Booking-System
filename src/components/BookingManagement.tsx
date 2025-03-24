@@ -3,38 +3,90 @@ import React, { useState, useEffect } from 'react';
     import { Booking } from '../models/Booking';
     import { Venue } from '../models/Venue';
     import { Person } from '../models/Person';
-    import { isDJAvailable } from '../utils/conflictDetection';
-    import BookingForm from './BookingForm'; // Import the BookingForm component
+    import BookingForm from './BookingForm';
+    import { useClientContext } from './ClientContext';
+    import { useDebounce } from '../utils/hooks';
 
     interface Props {
-      venues: Venue[];
-      people: Person[];
-      bookings: Booking[];
-      onBookingsChange: (bookings: Booking[]) => void;
+      // No props needed, as the component will use context
     }
 
-    const BookingManagement: React.FC<Props> = ({
-      venues = [], // Default to empty array
-      people = [], // Default to empty array
-      bookings = [], // Default to empty array
-      onBookingsChange,
-    }) => {
+    interface BookingRowProps {
+      booking: Booking;
+      venue?: Venue;
+      client?: Person;
+      djNames: string;
+      onEdit: (booking: Booking) => void;
+      onDelete: (id: number) => void;
+      onStatusChange: (bookingId: number, newStatus: Booking['status']) => void;
+    }
+
+    const BookingRow: React.FC<BookingRowProps> = ({ booking, venue, client, djNames, onEdit, onDelete, onStatusChange }) => {
+      return (
+        <tr key={booking.id}>
+          <td>{venue?.name}</td>
+          <td>{client?.fullName}</td>
+          <td>{djNames}</td>
+          <td>{booking.startDate}</td>
+          <td>{booking.startTime}</td>
+          <td>
+            {booking.status}
+            <select
+              value={booking.status}
+              onChange={(e) => onStatusChange(booking.id, e.target.value as Booking['status'])}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Postponed">Postponed</option>
+            </select>
+          </td>
+          <td>
+            <button
+              className="text-blue-500 hover:text-blue-700 mr-2"
+              onClick={() => onEdit(booking)}
+            >
+              <Pencil className="inline-block" size={16} />
+            </button>
+            <button
+              className="text-red-500 hover:text-red-700"
+              onClick={() => onDelete(booking.id)}
+            >
+              <Trash className="inline-block" size={16} />
+            </button>
+          </td>
+        </tr>
+      );
+    };
+
+    const BookingManagement: React.FC<Props> = () => {
+      const {
+        venues,
+        people,
+        bookings,
+        onBookingsChange,
+        onAddBooking,
+        onEditBooking,
+        onDeleteBooking,
+      } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
       const [filteredBookings, setFilteredBookings] = useState<Booking[]>(bookings || []);
+      const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
       useEffect(() => {
         if (bookings) {
           setFilteredBookings(
             bookings.filter(booking =>
               Object.values(booking).some(value =>
-                String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
               )
             )
           );
         }
-      }, [bookings, searchTerm]);
+      }, [bookings, debouncedSearchTerm]);
 
       const handleAddBooking = () => {
         setEditingBooking(null);
@@ -47,32 +99,26 @@ import React, { useState, useEffect } from 'react';
       };
 
       const handleDeleteBooking = (id: number) => {
-        if (bookings) {
-          const updatedBookings = bookings.filter(booking => booking.id !== id);
-          onBookingsChange(updatedBookings);
-        }
+        onDeleteBooking(id);
       };
 
       const handleSaveBooking = (booking: Booking) => {
         if (editingBooking) {
-          if (bookings) {
-            const updatedBookings = bookings.map(b => (b.id === booking.id ? booking : b));
-            onBookingsChange(updatedBookings);
-          }
+          onEditBooking(booking);
         } else {
-          const newBooking = { ...booking, id: Date.now() };
-          onBookingsChange([...(bookings || []), newBooking]);
+          onAddBooking(booking);
         }
         setIsModalOpen(false);
         setEditingBooking(null);
       };
 
       const handleStatusChange = (bookingId: number, newStatus: Booking['status']) => {
-        if (bookings) {
-          const updatedBookings = bookings.map(booking =>
-            booking.id === bookingId ? { ...booking, status: newStatus } : booking
-          );
-          onBookingsChange(updatedBookings);
+        const updatedBooking = {
+          ...bookings.find(booking => booking.id === bookingId),
+          status: newStatus,
+        };
+        if (updatedBooking) {
+          onEditBooking(updatedBooking);
         }
       };
 
@@ -117,44 +163,20 @@ import React, { useState, useEffect } from 'react';
             </thead>
             <tbody>
               {filteredBookings.map(booking => {
-                const venue = venues.find(v => v.id === booking.venueId);
-                const client = people.find(p => p.id === booking.primaryContactId);
-                const djNames = people.filter(p => booking.djIds.includes(p.id)).map(dj => dj.fullName).join(', ');
+                const venue = venues?.find(v => v.id === booking.venueId);
+                const client = people?.find(p => p.id === booking.primaryContactId);
+                const djNames = people?.filter(p => booking.djIds.includes(p.id)).map(dj => dj.fullName).join(', ');
                 return (
-                  <tr key={booking.id}>
-                    <td>{venue?.name}</td>
-                    <td>{client?.fullName}</td>
-                    <td>{djNames}</td>
-                    <td>{booking.startDate}</td>
-                    <td>{booking.startTime}</td>
-                    <td>
-                      {booking.status}
-                      <select
-                        value={booking.status}
-                        onChange={(e) => handleStatusChange(booking.id, e.target.value as Booking['status'])}
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                        <option value="Postponed">Postponed</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button
-                        className="text-blue-500 hover:text-blue-700 mr-2"
-                        onClick={() => handleEditBooking(booking)}
-                      >
-                        <Pencil className="inline-block" size={16} />
-                      </button>
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteBooking(booking.id)}
-                      >
-                        <Trash className="inline-block" size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                  <BookingRow
+                    key={booking.id}
+                    booking={booking}
+                    venue={venue}
+                    client={client}
+                    djNames={djNames}
+                    onEdit={handleEditBooking}
+                    onDelete={handleDeleteBooking}
+                    onStatusChange={handleStatusChange}
+                  />
                 );
               })}
             </tbody>

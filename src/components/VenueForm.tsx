@@ -1,171 +1,135 @@
 import React, { useState, useEffect } from 'react';
-import { VenueType, Venue } from '../models';
-import GenericForm from './ui/GenericForm';
+    import { Venue, VenueType } from '../models';
+    import FormInput from './ui/FormInput';
 
-interface Props {
-  venue?: Venue | null;
-  onClose: () => void;
-  onSave: (venue: Venue) => void;
-  venueTypes: VenueType[];
-}
-
-const VenueForm: React.FC<Props> = ({ venue, onClose, onSave, venueTypes }) => {
-  const [name, setName] = useState(venue?.name || '');
-  const [address, setAddress] = useState(venue?.address || '');
-  const [description, setDescription] = useState(venue?.description || '');
-  const [capacity, setCapacity] = useState(venue?.capacity || 0);
-  const [selectedVenueTypes, setSelectedVenueTypes] = useState(venue?.venueTypes || []);
-  const [equipment, setEquipment] = useState(venue?.equipment || []);
-  const [specifications, setSpecifications] = useState(venue?.specifications || {});
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-  useEffect(() => {
-    if (venue) {
-      setName(venue.name);
-      setAddress(venue.address);
-      setDescription(venue.description || '');
-      setCapacity(venue.capacity || 0);
-      setSelectedVenueTypes(venue.venueTypes || []);
-      setEquipment(venue.equipment || []);
-      setSpecifications(venue.specifications || {});
-    }
-  }, [venue]);
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: { [key: string]: string } = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-      isValid = false;
-    }
-    if (!address.trim()) {
-      newErrors.address = 'Address is required';
-      isValid = false;
+    interface VenueFormProps {
+      venue?: Venue | null;
+      onClose: () => void;
+      onSave: (venue: Venue) => void;
+      venueTypes: VenueType[];
     }
 
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const newVenue: Venue = {
-        id: venue?.id || Date.now(),
-        name,
-        address,
-        description,
-        capacity,
-        venueTypes: selectedVenueTypes,
-        equipment,
-        specifications,
+    const VenueForm: React.FC<VenueFormProps> = ({ venue, onClose, onSave, venueTypes }) => {
+      const [formData, setFormData] = useState<Venue>({
+        id: venue?.id || 0,
+        name: venue?.name || '',
+        address: venue?.address || '',
+        venueTypes: venue?.venueTypes || [],
         contacts: venue?.contacts || [],
+      });
+      const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+      useEffect(() => {
+        if (venue) {
+          setFormData(venue);
+        }
+      }, [venue]);
+
+      const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [name]: value,
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear error on change
       };
-      onSave(newVenue);
-      onClose();
-      setName('');
-      setAddress('');
-      setDescription('');
-      setCapacity(0);
-      setSelectedVenueTypes([]);
-      setEquipment([]);
-      setSpecifications({});
-      setErrors({});
-    }
-  };
 
-  const handleCancel = () => {
-    onClose();
-    setName('');
-    setAddress('');
-    setDescription('');
-    setCapacity(0);
-    setSelectedVenueTypes([]);
-    setEquipment([]);
-    setSpecifications({});
-    setErrors({});
-  };
+      const handleVenueTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { value, selectedOptions } = e.target;
+        const selectedVenueTypeIds = Array.from(selectedOptions, option => parseInt(option.value, 10));
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          venueTypes: selectedVenueTypeIds.map(id => ({ id, name: '' })), // Assuming we only need the ID
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, venueTypes: '' })); // Clear error on change
+      };
 
-  const handleVenueTypeChange = (type: VenueType, isChecked: boolean) => {
-    setSelectedVenueTypes(prevTypes => {
-      if (isChecked) {
-        return [...prevTypes, type];
-      } else {
-        return prevTypes.filter(prevType => prevType.id !== type.id);
-      }
-    });
-  };
+      const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (validateForm()) {
+          onSave(formData);
+        }
+      };
 
-  const formFields = [
-    {
-      name: 'name',
-      label: 'Name',
-      type: 'text',
-      value: name,
-      onChange: setName,
-      required: true,
-      error: errors.name,
-    },
-    {
-      name: 'address',
-      label: 'Address',
-      type: 'text',
-      value: address,
-      onChange: setAddress,
-      required: true,
-      error: errors.address,
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      value: description,
-      onChange: setDescription,
-    },
-    {
-      name: 'capacity',
-      label: 'Capacity',
-      type: 'number',
-      value: capacity,
-      onChange: setCapacity,
-    },
-  ];
+      const validateForm = () => {
+        let isValid = true;
+        const newErrors: { [key: string]: string } = {};
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" onClick={onClose}>
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
-          {venue ? 'Edit Venue' : 'Add Venue'}
-        </h3>
-        <div className="mt-2">
-          <GenericForm
-            fields={formFields}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            submitButtonText="Save"
-            cancelButtonText="Cancel"
-          />
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Venue Types</label>
-            <div className="mt-1">
-              {venueTypes.map(type => (
-                <label key={type.id} className="inline-flex items-center mr-4">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox h-4 w-4 text-blue-500"
-                    checked={selectedVenueTypes.some(selectedType => selectedType.id === type.id)}
-                    onChange={e => handleVenueTypeChange(type, e.target.checked)}
-                  />
-                  <span className="ml-2 text-gray-700">{type.name}</span>
-                </label>
-              ))}
-            </div>
+        if (!formData.name) {
+          newErrors.name = 'Name is required';
+          isValid = false;
+        }
+        if (!formData.address) {
+          newErrors.address = 'Address is required';
+          isValid = false;
+        }
+        if (formData.venueTypes.length === 0) {
+          newErrors.venueTypes = 'Venue types are required';
+          isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+      };
+
+      const venueTypeOptions = venueTypes?.map(venueType => ({ value: venueType.id, label: venueType.name })) || [];
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
+            <h2 className="text-2xl font-bold mb-4">{venue ? 'Edit Venue' : 'Add Venue'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormInput
+                label="Name"
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                error={errors.name}
+              />
+              <FormInput
+                label="Address"
+                type="text"
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                error={errors.address}
+              />
+              <FormInput
+                label="Venue Types"
+                type="select"
+                id="venueTypes"
+                name="venueTypes"
+                value={formData.venueTypes.map(type => type.id)}
+                onChange={handleVenueTypeChange}
+                error={errors.venueTypes}
+                multiple
+              >
+                {venueTypeOptions.map(venueType => (
+                  <option key={venueType.value} value={venueType.value}>{venueType.label}</option>
+                ))}
+              </FormInput>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
+      );
+    };
 
-export default VenueForm;
+    export default VenueForm;

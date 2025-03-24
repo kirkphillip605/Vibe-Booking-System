@@ -1,105 +1,134 @@
 import React, { useState, useEffect } from 'react';
-import { Contact } from '../models';
-import GenericForm from './ui/GenericForm';
+    import { Contact } from '../models';
+    import FormInput from './ui/FormInput';
 
-interface Props {
-  contact?: Contact | null;
-  onClose: () => void;
-  onSave: (contact: Contact) => void;
-}
-
-export const ContactForm: React.FC<Props> = ({ contact, onClose, onSave }) => {
-  const [firstName, setFirstName] = useState(contact?.firstName || '');
-  const [lastName, setLastName] = useState(contact?.lastName || '');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-  useEffect(() => {
-    if (contact) {
-      setFirstName(contact.firstName);
-      setLastName(contact.lastName);
-    }
-  }, [contact]);
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: { [key: string]: string } = {};
-
-    if (!firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-      isValid = false;
-    }
-    if (!lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-      isValid = false;
+    interface ContactFormProps {
+      contact?: Contact | null;
+      onClose: () => void;
+      onSave: (contact: Contact) => void;
     }
 
-    setErrors(newErrors);
-    return isValid;
-  };
+    const ContactForm: React.FC<ContactFormProps> = ({ contact, onClose, onSave }) => {
+      const [formData, setFormData] = useState<Contact>({
+        id: contact?.id || 0,
+        firstName: contact?.firstName || '',
+        lastName: contact?.lastName || '',
+        contactType: contact?.contactType || '',
+        contactRole: contact?.contactRole || '',
+        phoneNumbers: contact?.phoneNumbers || [],
+        emailAddresses: contact?.emailAddresses || [],
+        addresses: contact?.addresses || [],
+      });
+      const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const newContact: Contact = {
-        id: contact?.id || Date.now(),
-        firstName,
-        lastName,
-        contactMethods: [],
-        contactRoles: [],
-        notes: '',
+      useEffect(() => {
+        if (contact) {
+          setFormData(contact);
+        }
+      }, [contact]);
+
+      const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [name]: value,
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
-      onSave(newContact);
-      onClose();
-      setFirstName('');
-      setLastName('');
-      setErrors({});
-    }
-  };
 
-  const handleCancel = () => {
-    onClose();
-    setFirstName('');
-    setLastName('');
-    setErrors({});
-  };
+      const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (validateForm()) {
+          onSave(formData);
+        }
+      };
 
-  const formFields = [
-    {
-      name: 'firstName',
-      label: 'First Name',
-      type: 'text',
-      value: firstName,
-      onChange: setFirstName,
-      required: true,
-      error: errors.firstName,
-    },
-    {
-      name: 'lastName',
-      label: 'Last Name',
-      type: 'text',
-      value: lastName,
-      onChange: setLastName,
-      required: true,
-      error: errors.lastName,
-    },
-  ];
+      const validateForm = () => {
+        let isValid = true;
+        const newErrors: { [key: string]: string } = {};
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" onClick={onClose}>
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
-          {contact ? 'Edit Contact' : 'Add Contact'}
-        </h3>
-        <div className="mt-2">
-          <GenericForm
-            fields={formFields}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            submitButtonText="Save"
-            cancelButtonText="Cancel"
-          />
+        if (!formData.firstName) {
+          newErrors.firstName = 'First name is required';
+          isValid = false;
+        }
+        if (!formData.lastName) {
+          newErrors.lastName = 'Last name is required';
+          isValid = false;
+        }
+        if (!formData.contactType) {
+          newErrors.contactType = 'Contact type is required';
+          isValid = false;
+        }
+        if (!formData.contactRole) {
+          newErrors.contactRole = 'Contact role is required';
+          isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
+            <h2 className="text-2xl font-bold mb-4">{contact ? 'Edit Contact' : 'Add Contact'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <FormInput
+                label="First Name"
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                error={errors.firstName}
+              />
+              <FormInput
+                label="Last Name"
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                error={errors.lastName}
+              />
+              <FormInput
+                label="Contact Type"
+                type="text"
+                id="contactType"
+                name="contactType"
+                value={formData.contactType}
+                onChange={handleChange}
+                error={errors.contactType}
+              />
+              <FormInput
+                label="Contact Role"
+                type="text"
+                id="contactRole"
+                name="contactRole"
+                value={formData.contactRole}
+                onChange={handleChange}
+                error={errors.contactRole}
+              />
+              {/* Add input fields for phoneNumbers, emailAddresses, and addresses here */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-};
+      );
+    };
+
+    export default ContactForm;

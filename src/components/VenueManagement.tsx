@@ -1,26 +1,80 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
     import VenueForm from './VenueForm';
-    import { Venue, VenueType, Contact } from '../models'; // Import Venue and VenueType
+    import { Venue, VenueType, Contact } from '../models';
+    import { useClientContext } from './ClientContext';
     import { ContactForm } from './ContactForm';
 
-    interface VenueManagementProps {
-      venues: Venue[];
+    interface VenueRowProps {
+      venue: Venue;
       venueTypes: VenueType[];
-      contacts: Contact[];
-      onVenuesChange: (venues: Venue[]) => void;
-      onVenueTypesChange: (venueTypes: VenueType[]) => void;
-      onContactsChange: (contacts: Contact[]) => void;
+      onEdit: (venue: Venue) => void;
+      onDelete: (id: number) => void;
+      onAddContact: (venue: Venue) => void;
     }
 
-    const VenueManagement: React.FC<VenueManagementProps> = ({
-      venues = [], // Provide a default value (empty array)
-      venueTypes,
-      contacts,
-      onVenuesChange,
-      onVenueTypesChange,
-      onContactsChange,
-    }) => {
+    const VenueRow: React.FC<VenueRowProps> = ({ venue, venueTypes, onEdit, onDelete, onAddContact }) => {
+      return (
+        <tr key={venue.id}>
+          <td>{venue?.name}</td>
+          <td>{venue?.address}</td>
+          <td>
+            {venueTypes && venue.venueTypes?.map(typeId => {
+              const venueType = venueTypes.find(type => type.id === typeId);
+              return (
+                <span key={typeId} className="inline-block bg-gray-200 rounded-full px-2 py-1 text-sm font-semibold text-gray-700 mr-2">
+                  {venueType?.name || 'Unknown'}
+                </span>
+              );
+            }) || <span>No types</span>}
+          </td>
+          <td>
+            {venue?.contacts && venue.contacts.length > 0 ? (
+              venue.contacts.map(contact => (
+                <div key={contact.id}>
+                  {contact.firstName} {contact.lastName}
+                </div>
+              ))
+            ) : (
+              <span>No contacts</span>
+            )}
+            <button
+              className="text-blue-500 hover:text-blue-700 ml-2"
+              onClick={() => onAddContact(venue)}
+            >
+              <Plus className="inline-block" size={16} />
+            </button>
+          </td>
+          <td>
+            <button
+              className="text-blue-500 hover:text-blue-700 mr-2"
+              onClick={() => onEdit(venue)}
+            >
+              <Pencil className="inline-block" size={16} />
+            </button>
+            <button
+              className="text-red-500 hover:text-red-700"
+              onClick={() => onDelete(venue.id)}
+            >
+              <Trash className="inline-block" size={16} />
+            </button>
+          </td>
+        </tr>
+      );
+    };
+
+    const VenueManagement: React.FC = () => {
+      const {
+        venues,
+        venueTypes,
+        contacts,
+        onVenuesChange,
+        onVenueTypesChange,
+        onContactsChange,
+        onAddVenue,
+        onEditVenue,
+        onDeleteVenue,
+      } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -29,25 +83,32 @@ import React, { useState, useEffect } from 'react';
       const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
 
       useEffect(() => {
-        setFilteredVenues(venues);
+        if (venues) {
+          setFilteredVenues(venues);
+        }
       }, [venues]);
 
       useEffect(() => {
-        setFilteredVenues(
-          venues.filter(venue =>
-            Object.values(venue).some(value =>
-              typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (Array.isArray(value) && value.some(item => typeof item === 'string' && item.toLowerCase().includes(searchTerm.toLowerCase()))) ||
-              venue.venueTypes.some(type => type.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              venue.contacts.some(contact =>
-                `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+        if (venues) {
+          setFilteredVenues(
+            venues.filter(venue =>
+              Object.values(venue).some(value =>
+                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (Array.isArray(value) && value.some(item => typeof item === 'string' && item.toLowerCase().includes(searchTerm.toLowerCase()))) ||
+                (venue.venueTypes && venue.venueTypes.some(typeId => {
+                  const venueType = venueTypes?.find(type => type.id === typeId);
+                  return venueType?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                })) ||
+                (venue.contacts?.some(contact =>
+                  `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
+                ))
               )
             )
-          )
-        );
-      }, [venues, searchTerm]);
+          );
+        }
+      }, [venues, searchTerm, venueTypes]);
 
-      const handleAddVenue = () => {
+      const handleAddVenueClick = () => {
         setEditingVenue(null);
         setIsModalOpen(true);
       };
@@ -57,15 +118,15 @@ import React, { useState, useEffect } from 'react';
         setIsModalOpen(true);
       };
 
-      const handleDeleteVenue = (id: number) => {
-        onVenuesChange(venues.filter(venue => venue.id !== id));
+      const handleDeleteVenue = (venueId: number) => {
+        onDeleteVenue(venueId);
       };
 
       const handleSaveVenue = (venue: Venue) => {
         if (editingVenue) {
-          onVenuesChange(venues.map(v => (v.id === venue.id ? venue : v)));
+          onEditVenue(venue);
         } else {
-          onVenuesChange([...venues, { ...venue, id: Date.now() }]);
+          onAddVenue(venue);
         }
         setIsModalOpen(false);
         setEditingVenue(null);
@@ -108,7 +169,7 @@ import React, { useState, useEffect } from 'react';
             <h2 className="text-lg font-semibold">Venues</h2>
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
-              onClick={handleAddVenue}
+              onClick={handleAddVenueClick}
             >
               <Plus className="mr-2" size={16} /> Add Venue
             </button>
@@ -140,48 +201,14 @@ import React, { useState, useEffect } from 'react';
               </thead>
               <tbody>
                 {filteredVenues.map(venue => (
-                  <tr key={venue.id}>
-                    <td>{venue.name}</td>
-                    <td>{venue.address}</td>
-                    <td>
-                      {venue.venueTypes.map(type => (
-                        <span key={type.id} className="inline-block bg-gray-200 rounded-full px-2 py-1 text-sm font-semibold text-gray-700 mr-2">
-                          {type.name}
-                        </span>
-                      ))}
-                    </td>
-                    <td>
-                      {venue.contacts && venue.contacts.length > 0 ? (
-                        venue.contacts.map(contact => (
-                          <div key={contact.id}>
-                            {contact.firstName} {contact.lastName}
-                          </div>
-                        ))
-                      ) : (
-                        <span>No contacts</span>
-                      )}
-                      <button
-                        className="text-blue-500 hover:text-blue-700 ml-2"
-                        onClick={() => handleAddContact(venue)}
-                      >
-                        <Plus className="inline-block" size={16} />
-                      </button>
-                    </td>
-                    <td>
-                      <button
-                        className="text-blue-500 hover:text-blue-700 mr-2"
-                        onClick={() => handleEditVenue(venue)}
-                      >
-                        <Pencil className="inline-block" size={16} />
-                      </button>
-                      <button
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteVenue(venue.id)}
-                      >
-                        <Trash className="inline-block" size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                  <VenueRow
+                    key={venue.id}
+                    venue={venue}
+                    venueTypes={venueTypes}
+                    onEdit={handleEditVenue}
+                    onDelete={handleDeleteVenue}
+                    onAddContact={handleAddContact}
+                  />
                 ))}
               </tbody>
             </table>
