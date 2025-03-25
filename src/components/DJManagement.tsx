@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
-    import { Person } from '../models/Person';
     import DJForm from './DJForm';
-    import { useDebounce } from '../utils/hooks';
+    import { Person } from '../models';
     import { useClientContext } from './ClientContext';
-
-    interface DJManagementProps {
-      // No props needed, as the component manages its own state for now.
-    }
 
     interface DJRowProps {
       dj: Person;
@@ -18,8 +13,8 @@ import React, { useState, useEffect } from 'react';
     const DJRow: React.FC<DJRowProps> = ({ dj, onEdit, onDelete }) => {
       return (
         <tr key={dj.id}>
-          <td>{dj?.fullName}</td>
-          <td>{dj?.contact}</td>
+          <td>{dj.fullName}</td>
+          <td>{dj.contact}</td>
           <td>
             <button
               className="text-blue-500 hover:text-blue-700 mr-2"
@@ -38,23 +33,24 @@ import React, { useState, useEffect } from 'react';
       );
     };
 
-    const DJManagement: React.FC<DJManagementProps> = () => {
-      const { people, onPeopleChange, onAddDJ, onEditDJ, onDeleteDJ } = useClientContext();
-      const [djs, setDJs] = useState<Person[]>([]);
+    const DJManagement: React.FC = () => {
+      const { people, onAddDJ, onEditDJ, onDeleteDJ } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingDJ, setEditingDJ] = useState<Person | null>(null);
-      const debouncedSearchTerm = useDebounce(searchTerm, 300);
+      const [filteredDJs, setFilteredDJs] = useState<Person[]>([]);
 
       useEffect(() => {
-        setDJs(people || []);
-      }, [people]);
-
-      const filteredDJs = (people ? djs.filter(dj =>
-        Object.values(dj).some(value =>
-          String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-        )
-      ) : []);
+        if (people) {
+          setFilteredDJs(
+            people.filter(dj =>
+              Object.values(dj).some(value =>
+                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+            )
+          );
+        }
+      }, [people, searchTerm]);
 
       const handleAddDJClick = () => {
         setEditingDJ(null);

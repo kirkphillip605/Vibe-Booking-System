@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-    import { Person } from '../models/Person';
+    import { Person } from '../models';
     import FormInput from './ui/FormInput';
 
     interface DJFormProps {
@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
         id: dj?.id || 0,
         fullName: dj?.fullName || '',
         contact: dj?.contact || '',
+        roleIds: dj?.roleIds || [],
       });
       const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -22,7 +23,7 @@ import React, { useState, useEffect } from 'react';
         }
       }, [dj]);
 
-      const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prevFormData => ({
           ...prevFormData,
@@ -44,6 +45,10 @@ import React, { useState, useEffect } from 'react';
 
         if (!formData.fullName) {
           newErrors.fullName = 'Full name is required';
+          isValid = false;
+        }
+        if (!formData.contact) {
+          newErrors.contact = 'Contact is required';
           isValid = false;
         }
 

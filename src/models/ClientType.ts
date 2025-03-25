@@ -1,4 +1,4 @@
 export interface ClientType {
-  id: number;
-  name: 'Individual' | 'Business';
-}
+      id: number;
+      name: string;
+    }

@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
       venue?: Venue | null;
       onClose: () => void;
       onSave: (venue: Venue) => void;
-      venueTypes: VenueType[];
+      venueTypes?: VenueType[];
     }
 
     const VenueForm: React.FC<VenueFormProps> = ({ venue, onClose, onSave, venueTypes }) => {
@@ -31,17 +31,15 @@ import React, { useState, useEffect } from 'react';
           ...prevFormData,
           [name]: value,
         }));
-        setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear error on change
+        setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
 
       const handleVenueTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { value, selectedOptions } = e.target;
-        const selectedVenueTypeIds = Array.from(selectedOptions, option => parseInt(option.value, 10));
+        const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
         setFormData(prevFormData => ({
           ...prevFormData,
-          venueTypes: selectedVenueTypeIds.map(id => ({ id, name: '' })), // Assuming we only need the ID
+          venueTypes: selectedOptions,
         }));
-        setErrors(prevErrors => ({ ...prevErrors, venueTypes: '' })); // Clear error on change
       };
 
       const handleSubmit = (e: React.FormEvent) => {
@@ -63,16 +61,10 @@ import React, { useState, useEffect } from 'react';
           newErrors.address = 'Address is required';
           isValid = false;
         }
-        if (formData.venueTypes.length === 0) {
-          newErrors.venueTypes = 'Venue types are required';
-          isValid = false;
-        }
 
         setErrors(newErrors);
         return isValid;
       };
-
-      const venueTypeOptions = venueTypes?.map(venueType => ({ value: venueType.id, label: venueType.name })) || [];
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
@@ -97,20 +89,21 @@ import React, { useState, useEffect } from 'react';
                 onChange={handleChange}
                 error={errors.address}
               />
-              <FormInput
-                label="Venue Types"
-                type="select"
-                id="venueTypes"
-                name="venueTypes"
-                value={formData.venueTypes.map(type => type.id)}
-                onChange={handleVenueTypeChange}
-                error={errors.venueTypes}
-                multiple
-              >
-                {venueTypeOptions.map(venueType => (
-                  <option key={venueType.value} value={venueType.value}>{venueType.label}</option>
-                ))}
-              </FormInput>
+              <div className="flex flex-col">
+                <label htmlFor="venueTypes" className="block text-sm font-medium text-gray-700">Venue Types</label>
+                <select
+                  id="venueTypes"
+                  name="venueTypes"
+                  multiple
+                  value={formData.venueTypes}
+                  onChange={handleVenueTypeChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  {venueTypes?.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end">
                 <button
                   type="button"

@@ -1,9 +1,11 @@
-import { Contact } from './Contact';
+import { ClientType } from './ClientType';
+    import { ClientSegmentation } from './ClientSegmentation';
+    import { Person } from './Person';
 
     export interface Client {
       id: number;
-      clientType: string; // Individual or Business
-      businessName?: string;
-      primaryContact?: Contact;
-      // Add other client-specific fields here
+      businessName: string;
+      clientTypeId: number;
+      primaryContact: Person | null;
+      clientSegmentationId?: number;
     }

@@ -1,4 +1,4 @@
 export interface AddressType {
-  id: number;
-  name: string;
-}
+      id: number;
+      name: string;
+    }

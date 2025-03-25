@@ -1,29 +1,25 @@
-import { Booking } from '../models/Booking';
-import { Person } from '../models/Person';
+export const detectBookingConflicts = (
+      newBooking: { startDate: string; startTime: string; endTime: string; venueId: number },
+      existingBookings: {
+        startDate: string;
+        startTime: string;
+        endTime: string;
+        venueId: number;
+      }[]
+    ): boolean => {
+      const newStart = new Date(`${newBooking.startDate}T${newBooking.startTime}`);
+      const newEnd = new Date(`${newBooking.startDate}T${newBooking.endTime}`);
 
-export const isDJAvailable = (
-  djId: number,
-  startDate: string,
-  startTime: string,
-  endDate: string,
-  endTime: string,
-  bookings: Booking[],
-  people: Person[]
-): boolean => {
-  const djBookings = bookings.filter(booking => booking.djIds.includes(djId));
+      for (const booking of existingBookings) {
+        if (booking.venueId !== newBooking.venueId) continue;
 
-  for (const booking of djBookings) {
-    if (booking.status !== 'Cancelled' && booking.status !== 'Postponed') {
-      const bookingStart = new Date(`${booking.startDate}T${booking.startTime}`);
-      const bookingEnd = new Date(`${booking.endDate}T${booking.endTime}`);
-      const newBookingStart = new Date(`${startDate}T${startTime}`);
-      const newBookingEnd = new Date(`${endDate}T${endTime}`);
+        const existingStart = new Date(`${booking.startDate}T${booking.startTime}`);
+        const existingEnd = new Date(`${booking.startDate}T${booking.endTime}`);
 
-      if (newBookingStart < bookingEnd && newBookingEnd > bookingStart) {
-        return false; // Conflict found
+        if (newStart < existingEnd && newEnd > existingStart) {
+          return true; // Conflict detected
+        }
       }
-    }
-  }
 
-  return true; // No conflict
-};
+      return false; // No conflict
+    };

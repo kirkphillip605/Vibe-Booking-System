@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
     import { Booking, Venue, Person } from '../models';
     import FormInput from './ui/FormInput';
+    import { useClientContext } from './ClientContext';
 
     interface BookingFormProps {
       booking?: Booking | null;
@@ -19,6 +20,8 @@ import React, { useState, useEffect } from 'react';
         djIds: booking?.djIds || [],
         startDate: booking?.startDate || '',
         startTime: booking?.startTime || '',
+        endTime: booking?.endTime || '',
+        description: booking?.description || '',
         status: booking?.status || 'Draft',
       });
       const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -39,13 +42,11 @@ import React, { useState, useEffect } from 'react';
       };
 
       const handleDjChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { selectedOptions } = e.target;
-        const selectedDjIds = Array.from(selectedOptions, option => parseInt(option.value, 10));
+        const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
         setFormData(prevFormData => ({
           ...prevFormData,
-          djIds: selectedDjIds,
+          djIds: selectedOptions,
         }));
-        setErrors(prevErrors => ({ ...prevErrors, djIds: '' }));
       };
 
       const handleSubmit = (e: React.FormEvent) => {
@@ -64,7 +65,7 @@ import React, { useState, useEffect } from 'react';
           isValid = false;
         }
         if (!formData.primaryContactId) {
-          newErrors.primaryContactId = 'Client is required';
+          newErrors.primaryContactId = 'Primary Contact is required';
           isValid = false;
         }
         if (!formData.startDate) {
@@ -75,62 +76,20 @@ import React, { useState, useEffect } from 'react';
           newErrors.startTime = 'Start time is required';
           isValid = false;
         }
+        if (!formData.endTime) {
+          newErrors.endTime = 'End time is required';
+          isValid = false;
+        }
 
         setErrors(newErrors);
         return isValid;
       };
-
-      const venueOptions = venues?.map(venue => ({ value: venue.id, label: venue.name })) || [];
-      const clientOptions = people?.map(person => ({ value: person.id, label: person.fullName })) || [];
-      const djOptions = people?.map(person => ({ value: person.id, label: person.fullName })) || [];
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
             <h2 className="text-2xl font-bold mb-4">{booking ? 'Edit Booking' : 'Add Booking'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <FormInput
-                label="Venue"
-                type="select"
-                id="venueId"
-                name="venueId"
-                value={formData.venueId}
-                onChange={handleChange}
-                error={errors.venueId}
-              >
-                <option value="">Select Venue</option>
-                {venueOptions.map(venue => (
-                  <option key={venue.value} value={venue.value}>{venue.label}</option>
-                ))}
-              </FormInput>
-              <FormInput
-                label="Client"
-                type="select"
-                id="primaryContactId"
-                name```
-                value={formData.primaryContactId}
-                onChange={handleChange}
-                error={errors.primaryContactId}
-              >
-                <option value="">Select Client</option>
-                {clientOptions.map(client => (
-                  <option key={client.value} value={client.value}>{client.label}</option>
-                ))}
-              </FormInput>
-              <FormInput
-                label="DJ(s)"
-                type="select"
-                id="djIds"
-                name="djIds"
-                value={formData.djIds}
-                onChange={handleDjChange}
-                error={errors.djIds}
-                multiple
-              >
-                {djOptions.map(dj => (
-                  <option key={dj.value} value={dj.value}>{dj.label}</option>
-                ))}
-              </FormInput>
               <FormInput
                 label="Start Date"
                 type="date"
@@ -150,20 +109,69 @@ import React, { useState, useEffect } from 'react';
                 error={errors.startTime}
               />
               <FormInput
-                label="Status"
-                type="select"
-                id="status"
-                name="status"
-                value={formData.status}
+                label="End Time"
+                type="time"
+                id="endTime"
+                name="endTime"
+                value={formData.endTime}
                 onChange={handleChange}
-              >
-                <option value="Draft">Draft</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="Postponed">Postponed</option>
-              </FormInput>
-              {/* Add fields for event type, music preferences, special requests, and notes here */}
+                error={errors.endTime}
+              />
+              <FormInput
+                label="Description"
+                type="text"
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+              />
+              <div className="flex flex-col">
+                <label htmlFor="venueId" className="block text-sm font-medium text-gray-700">Venue</label>
+                <select
+                  id="venueId"
+                  name="venueId"
+                  value={formData.venueId}
+                  onChange={handleChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="" disabled>Select a venue</option>
+                  {venues?.map(venue => (
+                    <option key={venue.id} value={venue.id}>{venue.name}</option>
+                  ))}
+                </select>
+                {errors.venueId && <p className="text-red-500 text-sm">{errors.venueId}</p>}
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="primaryContactId" className="block text-sm font-medium text-gray-700">Primary Contact</label>
+                <select
+                  id="primaryContactId"
+                  name="primaryContactId"
+                  value={formData.primaryContactId}
+                  onChange={handleChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="" disabled>Select a contact</option>
+                  {people?.map(person => (
+                    <option key={person.id} value={person.id}>{person.fullName}</option>
+                  ))}
+                </select>
+                {errors.primaryContactId && <p className="text-red-500 text-sm">{errors.primaryContactId}</p>}
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="djIds" className="block text-sm font-medium text-gray-700">DJs</label>
+                <select
+                  id="djIds"
+                  name="djIds"
+                  multiple
+                  value={formData.djIds}
+                  onChange={handleDjChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  {people?.map(person => (
+                    <option key={person.id} value={person.id}>{person.fullName}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end">
                 <button
                   type="button"

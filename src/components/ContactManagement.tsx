@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
     import { Contact } from '../models';
-    import ContactForm from './ContactForm';
     import { useClientContext } from './ClientContext';
-    import { useDebounce } from '../utils/hooks';
+    import ContactForm from './ContactForm';
 
-    interface ContactManagementProps {
-      // No props needed, as the component manages its own state for now.
-    }
+    interface ContactManagementProps {}
 
     interface ContactRowProps {
       contact: Contact;
@@ -18,9 +15,9 @@ import React, { useState, useEffect } from 'react';
     const ContactRow: React.FC<ContactRowProps> = ({ contact, onEdit, onDelete }) => {
       return (
         <tr key={contact.id}>
-          <td>{contact?.firstName} {contact?.lastName}</td>
-          <td>{contact?.contactType}</td>
-          <td>{contact?.contactRole}</td>
+          <td>{contact.firstName} {contact.lastName}</td>
+          <td>{contact.contactType}</td>
+          <td>{contact.contactRole}</td>
           <td>
             <button
               className="text-blue-500 hover:text-blue-700 mr-2"
@@ -40,28 +37,24 @@ import React, { useState, useEffect } from 'react';
     };
 
     const ContactManagement: React.FC<ContactManagementProps> = () => {
-      const { contacts, onContactsChange, onAddContact, onEditContact, onDeleteContact } = useClientContext();
+      const { contacts, onAddContact, onEditContact, onDeleteContact } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
+      const```
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingContact, setEditingContact] = useState<Contact | null>(null);
-      const debouncedSearchTerm = useDebounce(searchTerm, 300);
       const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
 
       useEffect(() => {
         if (contacts) {
-          setFilteredContacts(contacts);
-        }
-      }, [contacts]);
-
-      useEffect(() => {
-        if (contacts) {
-          setFilteredContacts(contacts.filter(contact =>
-            Object.values(contact).some(value =>
-              String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          setFilteredContacts(
+            contacts.filter(contact =>
+              Object.values(contact).some(value =>
+                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+              )
             )
-          ));
+          );
         }
-      }, [contacts, debouncedSearchTerm]);
+      }, [contacts, searchTerm]);
 
       const handleAddContactClick = () => {
         setEditingContact(null);
