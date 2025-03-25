@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
-    import DJForm from './DJForm';
     import { Person } from '../models';
     import { useClientContext } from './ClientContext';
+    import DJForm from './DJForm';
 
     interface DJRowProps {
       dj: Person;
@@ -13,8 +13,7 @@ import React, { useState, useEffect } from 'react';
     const DJRow: React.FC<DJRowProps> = ({ dj, onEdit, onDelete }) => {
       return (
         <tr key={dj.id}>
-          <td>{dj.fullName}</td>
-          <td>{dj.contact}</td>
+          <td>{dj.firstName} {dj.lastName}</td>
           <td>
             <button
               className="text-blue-500 hover:text-blue-700 mr-2"
@@ -34,7 +33,7 @@ import React, { useState, useEffect } from 'react';
     };
 
     const DJManagement: React.FC = () => {
-      const { people, onAddDJ, onEditDJ, onDeleteDJ } = useClientContext();
+      const { people, onAddPerson, onEditPerson, onDeletePerson } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingDJ, setEditingDJ] = useState<Person | null>(null);
@@ -43,8 +42,8 @@ import React, { useState, useEffect } from 'react';
       useEffect(() => {
         if (people) {
           setFilteredDJs(
-            people.filter(dj =>
-              Object.values(dj).some(value =>
+            people.filter(person =>
+              person.role === 'DJ' && Object.values(person).some(value =>
                 typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
               )
             )
@@ -63,14 +62,14 @@ import React, { useState, useEffect } from 'react';
       };
 
       const handleDeleteDJ = (djId: number) => {
-        onDeleteDJ(djId);
+        onDeletePerson(djId);
       };
 
       const handleSaveDJ = (dj: Person) => {
         if (editingDJ) {
-          onEditDJ(dj);
+          onEditPerson(dj);
         } else {
-          onAddDJ(dj);
+          onAddPerson(dj);
         }
         setIsModalOpen(false);
         setEditingDJ(null);
@@ -107,7 +106,6 @@ import React, { useState, useEffect } from 'react';
               <thead>
                 <tr>
                   <th className="text-left">Name</th>
-                  <th className="text-left">Contact</th>
                   <th className="text-left">Actions</th>
                 </tr>
               </thead>

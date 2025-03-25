@@ -11,11 +11,12 @@ import React, { useState, useEffect } from 'react';
     const DJForm: React.FC<DJFormProps> = ({ dj, onClose, onSave }) => {
       const [formData, setFormData] = useState<Person>({
         id: dj?.id || 0,
-        fullName: dj?.fullName || '',
-        contact: dj?.contact || '',
-        roleIds: dj?.roleIds || [],
+        firstName: dj?.firstName || '',
+        lastName: dj?.lastName || '',
+        email: dj?.email || '',
+        phone: dj?.phone || '',
+        role: 'DJ',
       });
-      const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
       useEffect(() => {
         if (dj) {
@@ -29,31 +30,11 @@ import React, { useState, useEffect } from 'react';
           ...prevFormData,
           [name]: value,
         }));
-        setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
 
       const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (validateForm()) {
-          onSave(formData);
-        }
-      };
-
-      const validateForm = () => {
-        let isValid = true;
-        const newErrors: { [key: string]: string } = {};
-
-        if (!formData.fullName) {
-          newErrors.fullName = 'Full name is required';
-          isValid = false;
-        }
-        if (!formData.contact) {
-          newErrors.contact = 'Contact is required';
-          isValid = false;
-        }
-
-        setErrors(newErrors);
-        return isValid;
+        onSave(formData);
       };
 
       return (
@@ -62,22 +43,36 @@ import React, { useState, useEffect } from 'react';
             <h2 className="text-2xl font-bold mb-4">{dj ? 'Edit DJ' : 'Add DJ'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput
-                label="Full Name"
+                label="First Name"
                 type="text"
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
-                error={errors.fullName}
               />
               <FormInput
-                label="Contact"
+                label="Last Name"
                 type="text"
-                id="contact"
-                name="contact"
-                value={formData.contact}
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
                 onChange={handleChange}
-                error={errors.contact}
+              />
+              <FormInput
+                label="Email"
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Phone"
+                type="text"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
               />
               <div className="flex justify-end">
                 <button

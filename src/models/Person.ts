@@ -1,9 +1,7 @@
-import { ContactMethod } from './ContactMethod';
-    import { Role } from './Role';
-
-    export interface Person {
+export interface Person {
       id: number;
-      fullName: string;
-      contact: string;
-      roleIds?: number[];
+      firstName: string;
+      lastName: string;
+      fullName?: string;
+      contact?: string;
     }

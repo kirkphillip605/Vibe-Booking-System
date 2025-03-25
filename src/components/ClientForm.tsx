@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-    import { Client, ClientType, Person, ClientSegmentation } from '../models';
+    import { Client, ClientType, ClientSegmentation } from '../models';
     import FormInput from './ui/FormInput';
     import { useClientContext } from './ClientContext';
 
@@ -7,29 +7,18 @@ import React, { useState, useEffect } from 'react';
       client?: Client | null;
       onClose: () => void;
       onSave: (client: Client) => void;
-      clientTypes?: ClientType[];
-      contacts?: Person[];
-      bookings?: any[]; // Assuming bookings is not used in this component
-      people?: Person[];
-      clientSegmentations?: ClientSegmentation[];
     }
 
-    const ClientForm: React.FC<ClientFormProps> = ({
-      client,
-      onClose,
-      onSave,
-      clientTypes,
-      contacts,
-      bookings,
-      people,
-      clientSegmentations,
-    }) => {
+    const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSave }) => {
+      const { clientTypes, clientSegmentations } = useClientContext();
       const [formData, setFormData] = useState<Client>({
         id: client?.id || 0,
-        businessName: client?.businessName || '',
-        clientTypeId: client?.clientTypeId || 0,
-        primaryContact: client?.primaryContact || null,
-        clientSegmentationId: client?.clientSegmentationId || 0,
+        firstName: client?.firstName || '',
+        lastName: client?.lastName || '',
+        companyName: client?.companyName || '',
+        clientType: client?.clientType || '',
+        clientSegmentation: client?.clientSegmentation || '',
+        contacts: client?.contacts || [],
       });
       const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -59,16 +48,12 @@ import React, { useState, useEffect } from 'react';
         let isValid = true;
         const newErrors: { [key: string]: string } = {};
 
-        if (!formData.businessName) {
-          newErrors.businessName = 'Business name is required';
+        if (!formData.firstName) {
+          newErrors.firstName = 'First name is required';
           isValid = false;
         }
-        if (!formData.clientTypeId) {
-          newErrors.clientTypeId = 'Client type is required';
-          isValid = false;
-        }
-        if (!formData.primaryContact) {
-          newErrors.primaryContact = 'Primary contact is required';
+        if (!formData.lastName) {
+          newErrors.lastName = 'Last name is required';
           isValid = false;
         }
 
@@ -82,56 +67,56 @@ import React, { useState, useEffect } from 'react';
             <h2 className="text-2xl font-bold mb-4">{client ? 'Edit Client' : 'Add Client'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormInput
-                label="Business Name"
+                label="First Name"
                 type="text"
-                id="businessName"
-                name="businessName"
-                value={formData.businessName}
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
-                error={errors.businessName}
+                error={errors.firstName}
+              />
+              <FormInput
+                label="Last Name"
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                error={errors.lastName}
+              />
+              <FormInput
+                label="Company Name"
+                type="text"
+                id="companyName"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleChange}
               />
               <div className="flex flex-col">
-                <label htmlFor="clientTypeId" className="block text-sm font-medium text-gray-700">Client Type</label>
+                <label htmlFor="clientType" className="block text-sm font-medium text-gray-700">Client Type</label>
                 <select
-                  id="clientTypeId"
-                  name="clientTypeId"
-                  value={formData.clientTypeId}
+                  id="clientType"
+                  name="clientType"
+                  value={formData.clientType}
                   onChange={handleChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="" disabled>Select a client type</option>
+                  <option value="">Select Client Type</option>
                   {clientTypes?.map(type => (
                     <option key={type.id} value={type.id}>{type.name}</option>
                   ))}
                 </select>
-                {errors.clientTypeId && <p className="text-red-500 text-sm">{errors.clientTypeId}</p>}
               </div>
               <div className="flex flex-col">
-                <label htmlFor="primaryContact" className="block text-sm font-medium text-gray-700">Primary Contact</label>
+                <label htmlFor="clientSegmentation" className="block text-sm font-medium text-gray-700">Client Segmentation</label>
                 <select
-                  id="primaryContact"
-                  name="primaryContact"
-                  value={formData.primaryContact?.id || ''}
+                  id="clientSegmentation"
+                  name="clientSegmentation"
+                  value={formData.clientSegmentation}
                   onChange={handleChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="" disabled>Select a contact</option>
-                  {people?.map(person => (
-                    <option key={person.id} value={person.id}>{person.fullName}</option>
-                  ))}
-                </select>
-                {errors.primaryContact && <p className="text-red-500 text-sm">{errors.primaryContact}</p>}
-              </div>
-              <div className="flex flex-col">
-                <label htmlFor="clientSegmentationId" className="block text-sm font-medium text-gray-700">Client Segmentation</label>
-                <select
-                  id="clientSegmentationId"
-                  name="clientSegmentationId"
-                  value={formData.clientSegmentationId}
-                  onChange={handleChange}
-                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  <option value="" disabled>Select a segmentation</option>
+                  <option value="">Select Client Segmentation</option>
                   {clientSegmentations?.map(segmentation => (
                     <option key={segmentation.id} value={segmentation.id}>{segmentation.name}</option>
                   ))}

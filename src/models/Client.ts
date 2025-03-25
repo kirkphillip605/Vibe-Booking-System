@@ -1,11 +1,13 @@
-import { ClientType } from './ClientType';
+import { Contact } from './Contact';
+    import { ClientType } from './ClientType';
     import { ClientSegmentation } from './ClientSegmentation';
-    import { Person } from './Person';
 
     export interface Client {
       id: number;
-      businessName: string;
-      clientTypeId: number;
-      primaryContact: Person | null;
-      clientSegmentationId?: number;
+      firstName: string;
+      lastName: string;
+      companyName?: string;
+      clientType: string; // ID of ClientType
+      clientSegmentation: string; // ID of ClientSegmentation
+      contacts: Contact[];
     }

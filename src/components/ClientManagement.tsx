@@ -1,34 +1,20 @@
 import React, { useState, useEffect } from 'react';
     import { Plus, Pencil, Trash, Search } from 'lucide-react';
     import ClientForm from './ClientForm';
-    import { Client, ClientType, Contact, Booking, Person, ClientSegmentation } from '../models';
+    import { Client } from '../models';
     import { useClientContext } from './ClientContext';
-    import ContactForm from './ContactForm';
 
     interface ClientRowProps {
       client: Client;
-      clientTypes: ClientType[];
       onEdit: (client: Client) => void;
       onDelete: (id: number) => void;
-      onAddContact: (client: Client) => void;
     }
 
-    const ClientRow: React.FC<ClientRowProps> = ({ client, clientTypes, onEdit, onDelete, onAddContact }) => {
-      const clientTypeName = clientTypes?.find(type => type.id === client?.clientTypeId)?.name || 'Unknown';
-
+    const ClientRow: React.FC<ClientRowProps> = ({ client, onEdit, onDelete }) => {
       return (
         <tr key={client.id}>
-          <td>{client?.businessName || `${client?.primaryContact?.firstName} ${client?.primaryContact?.lastName}`}</td>
-          <td>
-            {client?.primaryContact && `${client.primaryContact.firstName} ${client.primaryContact.lastName}`}
-            <button
-              className="text-blue-500 hover:text-blue-700 ml-2"
-              onClick={() => onAddContact(client)}
-            >
-              <Plus className="inline-block" size={16} />
-            </button>
-          </td>
-          <td>{clientTypeName}</td>
+          <td>{client.firstName} {client.lastName}</td>
+          <td>{client.companyName}</td>
           <td>
             <button
               className="text-blue-500 hover:text-blue-700 mr-2"
@@ -48,35 +34,22 @@ import React, { useState, useEffect } from 'react';
     };
 
     const ClientManagement: React.FC = () => {
-      const {
-        clients,
-        clientTypes,
-        contacts,
-        bookings,
-        people,
-        clientSegmentations,
-        onClientsChange,
-        onAddClient,
-        onEditClient,
-        onDeleteClient,
-      } = useClientContext();
+      const { clients, onAddClient, onEditClient, onDeleteClient } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
       const [isModalOpen, setIsModalOpen] = useState(false);
-      const [isContactModalOpen, setIsContactModalOpen] = useState(false);
       const [editingClient, setEditingClient] = useState<Client | null>(null);
-      const [editingContact, setEditingContact] = useState<Contact | null>(null);
-      const [filteredClients, setFilteredClients] = useState<Client[]>(clients);
+      const [filteredClients, setFilteredClients] = useState<Client[]>([]);
 
       useEffect(() => {
-        setFilteredClients(
-          clients.filter(client =>
-            Object.values(client).some(value =>
-              typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (client.businessName && client.businessName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-              (client.primaryContact && `${client.primaryContact.firstName} ${client.primaryContact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()))
+        if (clients) {
+          setFilteredClients(
+            clients.filter(client =>
+              Object.values(client).some(value =>
+                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+              )
             )
-          )
-        );
+          );
+        }
       }, [clients, searchTerm]);
 
       const handleAddClientClick = () => {
@@ -100,36 +73,6 @@ import React, { useState, useEffect } from 'react';
           onAddClient(client);
         }
         setIsModalOpen(false);
-        setEditingClient(null);
-      };
-
-      const handleAddContact = (client: Client) => {
-        setEditingContact(null);
-        setEditingClient(client);
-        setIsContactModalOpen(true);
-      };
-
-      const handleEditContact = (contact: Contact) => {
-        setEditingContact(contact);
-        setIsContactModalOpen(true);
-      };
-
-      const handleSaveContact = (contact: Contact) => {
-        if (editingClient) {
-          const updatedClient = {
-            ...editingClient,
-            primaryContact: contact,
-          };
-          onClientsChange(clients.map(c => (c.id === updatedClient.id ? updatedClient : c)));
-        }
-        setIsContactModalOpen(false);
-        setEditingContact(null);
-        setEditingClient(null);
-      };
-
-      const handleCloseContactModal = () => {
-        setIsContactModalOpen(false);
-        setEditingContact(null);
         setEditingClient(null);
       };
 
@@ -164,8 +107,7 @@ import React, { useState, useEffect } from 'react';
               <thead>
                 <tr>
                   <th className="text-left">Name</th>
-                  <th className="text-left">Contact</th>
-                  <th className="text-left">Client Type</th>
+                  <th className="text-left">Company</th>
                   <th className="text-left">Actions</th>
                 </tr>
               </thead>
@@ -174,10 +116,8 @@ import React, { useState, useEffect } from 'react';
                   <ClientRow
                     key={client.id}
                     client={client}
-                    clientTypes={clientTypes}
                     onEdit={handleEditClient}
                     onDelete={handleDeleteClient}
-                    onAddContact={handleAddContact}
                   />
                 ))}
               </tbody>
@@ -189,18 +129,6 @@ import React, { useState, useEffect } from 'react';
               client={editingClient}
               onClose={() => setIsModalOpen(false)}
               onSave={handleSaveClient}
-              clientTypes={clientTypes}
-              contacts={contacts}
-              bookings={bookings}
-              people={people}
-              clientSegmentations={clientSegmentations}
-            />
-          )}
-          {isContactModalOpen && editingClient && (
-            <ContactForm
-              contact={editingContact}
-              onClose={handleCloseContactModal}
-              onSave={handleSaveContact}
             />
           )}
         </div>

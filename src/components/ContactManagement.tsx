@@ -39,7 +39,6 @@ import React, { useState, useEffect } from 'react';
     const ContactManagement: React.FC<ContactManagementProps> = () => {
       const { contacts, onAddContact, onEditContact, onDeleteContact } = useClientContext();
       const [searchTerm, setSearchTerm] = useState('');
-      const```
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingContact, setEditingContact] = useState<Contact | null>(null);
       const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);

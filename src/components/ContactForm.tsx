@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-    import { Contact } from '../models';
+    import { Contact, ContactType, ContactRole } from '../models';
     import FormInput from './ui/FormInput';
+    import { useClientContext } from './ClientContext';
 
     interface ContactFormProps {
       contact?: Contact | null;
@@ -9,6 +10,7 @@ import React, { useState, useEffect } from 'react';
     }
 
     const ContactForm: React.FC<ContactFormProps> = ({ contact, onClose, onSave }) => {
+      const { contactTypes, contactRoles } = useClientContext();
       const [formData, setFormData] = useState<Contact>({
         id: contact?.id || 0,
         firstName: contact?.firstName || '',
@@ -19,7 +21,6 @@ import React, { useState, useEffect } from 'react';
         emailAddresses: contact?.emailAddresses || [],
         addresses: contact?.addresses || [],
       });
-      const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
       useEffect(() => {
         if (contact) {
@@ -33,39 +34,11 @@ import React, { useState, useEffect } from 'react';
           ...prevFormData,
           [name]: value,
         }));
-        setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
 
       const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (validateForm()) {
-          onSave(formData);
-        }
-      };
-
-      const validateForm = () => {
-        let isValid = true;
-        const newErrors: { [key: string]: string } = {};
-
-        if (!formData.firstName) {
-          newErrors.firstName = 'First name is required';
-          isValid = false;
-        }
-        if (!formData.lastName) {
-          newErrors.lastName = 'Last name is required';
-          isValid = false;
-        }
-        if (!formData.contactType) {
-          newErrors.contactType = 'Contact type is required';
-          isValid = false;
-        }
-        if (!formData.contactRole) {
-          newErrors.contactRole = 'Contact role is required';
-          isValid = false;
-        }
-
-        setErrors(newErrors);
-        return isValid;
+        onSave(formData);
       };
 
       return (
@@ -80,7 +53,6 @@ import React, { useState, useEffect } from 'react';
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                error={errors.firstName}
               />
               <FormInput
                 label="Last Name"
@@ -89,27 +61,37 @@ import React, { useState, useEffect } from 'react';
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                error={errors.lastName}
               />
-              <FormInput
-                label="Contact Type"
-                type="text"
-                id="contactType"
-                name="contactType"
-                value={formData.contactType}
-                onChange={handleChange}
-                error={errors.contactType}
-              />
-              <FormInput
-                label="Contact Role"
-                type="text"
-                id="contactRole"
-                name="contactRole"
-                value={formData.contactRole}
-                onChange={handleChange}
-                error={errors.contactRole}
-              />
-              {/* Add input fields for phoneNumbers, emailAddresses, and addresses here */}
+              <div className="flex flex-col">
+                <label htmlFor="contactType" className="block text-sm font-medium text-gray-700">Contact Type</label>
+                <select
+                  id="contactType"
+                  name="contactType"
+                  value={formData.contactType}
+                  onChange={handleChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="">Select Contact Type</option>
+                  {contactTypes?.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="contactRole" className="block text-sm font-medium text-gray-700">Contact Role</label>
+                <select
+                  id="contactRole"
+                  name="contactRole"
+                  value={formData.contactRole}
+                  onChange={handleChange}
+                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="">Select Contact Role</option>
+                  {contactRoles?.map(role => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end">
                 <button
                   type="button"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
     import { Booking, Venue, Person } from '../models';
     import FormInput from './ui/FormInput';
     import { useClientContext } from './ClientContext';
+    import { detectBookingConflicts } from '../utils/conflictDetection';
 
     interface BookingFormProps {
       booking?: Booking | null;
@@ -15,14 +16,19 @@ import React, { useState, useEffect } from 'react';
     const BookingForm: React.FC<BookingFormProps> = ({ booking, onClose, onSave, venues, people, bookings }) => {
       const [formData, setFormData] = useState<Booking>({
         id: booking?.id || 0,
+        bookingName: booking?.bookingName || '',
+        startDate: booking?.startDate || '',
+        startTime: booking?.startTime || '',
+        endDate: booking?.endDate || '',
+        endTime: booking?.endTime || '',
+        status: booking?.status || 'Draft',
         venueId: booking?.venueId || 0,
         primaryContactId: booking?.primaryContactId || 0,
         djIds: booking?.djIds || [],
-        startDate: booking?.startDate || '',
-        startTime: booking?.startTime || '',
-        endTime: booking?.endTime || '',
-        description: booking?.description || '',
-        status: booking?.status || 'Draft',
+        eventType: booking?.eventType || 'dj',
+        musicGenrePreferences: booking?.musicGenrePreferences || '',
+        specialRequests: booking?.specialRequests || '',
+        notes: booking?.notes || '',
       });
       const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -41,7 +47,25 @@ import React, { useState, useEffect } from 'react';
         setErrors(prevErrors => ({ ...prevErrors, [name]: '' }));
       };
 
-      const handleDjChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const handleVenueChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = parseInt(e.target.value);
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          venueId: value,
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, venueId: '' }));
+      };
+
+      const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = parseInt(e.target.value);
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          primaryContactId: value,
+        }));
+        setErrors(prevErrors => ({ ...prevErrors, primaryContactId: '' }));
+      };
+
+      const handleDJChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
         setFormData(prevFormData => ({
           ...prevFormData,
@@ -52,6 +76,10 @@ import React, { useState, useEffect } from 'react';
       const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
+          if (isBookingConflicting()) {
+            alert('This booking conflicts with an existing booking.');
+            return;
+          }
           onSave(formData);
         }
       };
@@ -60,12 +88,8 @@ import React, { useState, useEffect } from 'react';
         let isValid = true;
         const newErrors: { [key: string]: string } = {};
 
-        if (!formData.venueId) {
-          newErrors.venueId = 'Venue is required';
-          isValid = false;
-        }
-        if (!formData.primaryContactId) {
-          newErrors.primaryContactId = 'Primary Contact is required';
+        if (!formData.bookingName) {
+          newErrors.bookingName = 'Booking name is required';
           isValid = false;
         }
         if (!formData.startDate) {
@@ -74,6 +98,18 @@ import React, { useState, useEffect } from 'react';
         }
         if (!formData.startTime) {
           newErrors.startTime = 'Start time is required';
+          isValid = false;
+        }
+        if (!formData.venueId) {
+          newErrors.venueId = 'Venue is required';
+          isValid = false;
+        }
+        if (!formData.primaryContactId) {
+          newErrors.primaryContactId = 'Client is required';
+          isValid = false;
+        }
+        if (!formData.endDate) {
+          newErrors.endDate = 'End date is required';
           isValid = false;
         }
         if (!formData.endTime) {
@@ -85,11 +121,45 @@ import React, { useState, useEffect } from 'react';
         return isValid;
       };
 
+      const isBookingConflicting = () => {
+        if (!bookings || !formData.venueId || !formData.startDate || !formData.startTime || !formData.endDate || !formData.endTime) {
+          return false; // Not enough data to check
+        }
+
+        const newBooking = {
+          startDate: formData.startDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          venueId: formData.venueId,
+        };
+
+        const existingBookingsForVenue = bookings.filter(booking => booking.venueId === formData.venueId);
+
+        return detectBookingConflicts(
+          newBooking,
+          existingBookingsForVenue.map(booking => ({
+            startDate: booking.startDate,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            venueId: booking.venueId,
+          }))
+        );
+      };
+
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-8 rounded shadow-md w-full max-w-lg">
             <h2 className="text-2xl font-bold mb-4">{booking ? 'Edit Booking' : 'Add Booking'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <FormInput
+                label="Booking Name"
+                type="text"
+                id="bookingName"
+                name="bookingName"
+                value={formData.bookingName}
+                onChange={handleChange}
+                error={errors.bookingName}
+              />
               <FormInput
                 label="Start Date"
                 type="date"
@@ -109,6 +179,15 @@ import React, { useState, useEffect } from 'react';
                 error={errors.startTime}
               />
               <FormInput
+                label="End Date"
+                type="date"
+                id="endDate"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleChange}
+                error={errors.endDate}
+              />
+              <FormInput
                 label="End Time"
                 type="time"
                 id="endTime"
@@ -117,24 +196,16 @@ import React, { useState, useEffect } from 'react';
                 onChange={handleChange}
                 error={errors.endTime}
               />
-              <FormInput
-                label="Description"
-                type="text"
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-              />
               <div className="flex flex-col">
                 <label htmlFor="venueId" className="block text-sm font-medium text-gray-700">Venue</label>
                 <select
                   id="venueId"
                   name="venueId"
                   value={formData.venueId}
-                  onChange={handleChange}
+                  onChange={handleVenueChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="" disabled>Select a venue</option>
+                  <option value="">Select Venue</option>
                   {venues?.map(venue => (
                     <option key={venue.id} value={venue.id}>{venue.name}</option>
                   ))}
@@ -142,36 +213,68 @@ import React, { useState, useEffect } from 'react';
                 {errors.venueId && <p className="text-red-500 text-sm">{errors.venueId}</p>}
               </div>
               <div className="flex flex-col">
-                <label htmlFor="primaryContactId" className="block text-sm font-medium text-gray-700">Primary Contact</label>
+                <label htmlFor="primaryContactId" className="block text-sm font-medium text-gray-700">Client</label>
                 <select
                   id="primaryContactId"
                   name="primaryContactId"
                   value={formData.primaryContactId}
-                  onChange={handleChange}
+                  onChange={handleClientChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="" disabled>Select a contact</option>
+                  <option value="">Select Client</option>
                   {people?.map(person => (
-                    <option key={person.id} value={person.id}>{person.fullName}</option>
+                    <option key={person.id} value={person.id}>{person.firstName} {person.lastName}</option>
                   ))}
                 </select>
                 {errors.primaryContactId && <p className="text-red-500 text-sm">{errors.primaryContactId}</p>}
               </div>
               <div className="flex flex-col">
-                <label htmlFor="djIds" className="block text-sm font-medium text-gray-700">DJs</label>
+                <label htmlFor="djIds" className="block text-sm font-medium text-gray-700">DJ(s)</label>
                 <select
                   id="djIds"
                   name="djIds"
                   multiple
                   value={formData.djIds}
-                  onChange={handleDjChange}
+                  onChange={handleDJChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
                   {people?.map(person => (
-                    <option key={person.id} value={person.id}>{person.fullName}</option>
+                    <option key={person.id} value={person.id}>{person.firstName} {person.lastName}</option>
                   ))}
                 </select>
               </div>
+              <FormInput
+                label="Event Type"
+                type="text"
+                id="eventType"
+                name="eventType"
+                value={formData.eventType}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Music Genre Preferences"
+                type="text"
+                id="musicGenrePreferences"
+                name="musicGenrePreferences"
+                value={formData.musicGenrePreferences}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Special Requests"
+                type="text"
+                id="specialRequests"
+                name="specialRequests"
+                value={formData.specialRequests}
+                onChange={handleChange}
+              />
+              <FormInput
+                label="Notes"
+                type="text"
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+              />
               <div className="flex justify-end">
                 <button
                   type="button"

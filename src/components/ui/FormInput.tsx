@@ -12,7 +12,7 @@ import React from 'react';
 
     const FormInput: React.FC<FormInputProps> = ({ label, type, id, name, value, onChange, error }) => {
       return (
-        <div>
+        <div className="mb-4">
           <label htmlFor={id} className="block text-sm font-medium text-gray-700">
             {label}
           </label>
