@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
     import ClientForm from './ClientForm';
     import { Client, ClientType, Contact, Booking, Person, ClientSegmentation } from '../models';
     import { useClientContext } from './ClientContext';
-    import { ContactForm } from './ContactForm';
+    import ContactForm from './ContactForm';
 
     interface ClientRowProps {
       client: Client;

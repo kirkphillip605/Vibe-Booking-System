@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
     import VenueForm from './VenueForm';
     import { Venue, VenueType, Contact } from '../models';
     import { useClientContext } from './ClientContext';
-    import { ContactForm } from './ContactForm';
+    import ContactForm from './ContactForm';
 
     interface VenueRowProps {
       venue: Venue;
